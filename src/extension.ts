@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { TuanGraphView } from "./TuanGraphView";
+import { TuanGraphView } from "./graph-view/TuanGraphView";
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(

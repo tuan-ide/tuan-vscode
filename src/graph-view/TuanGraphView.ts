@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import type * as vscode from "vscode";
 
 export class TuanGraphView implements vscode.WebviewViewProvider {
@@ -26,9 +27,22 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 				<title>Tuan Graph</title>
 			</head>
 			<body>
-				<h1>Hello from Tuan Graph!</h1>
+				<div id="app" style="width: 100%; height: 100vh;"></div>
+				<script type="module">
+					globalThis.exports = {};
+					${TuanGraphView.getMainModule()}
+				</script>
+				<script type="module">
+					const { App } = exports;
+					new App(document.getElementById('app'));
+				</script>
 			</body>
 			</html>
 		`;
+	}
+
+	private static getMainModule() {
+		const webviewPath = require.resolve("./App");
+		return fs.readFileSync(webviewPath, "utf8");
 	}
 }
