@@ -1,0 +1,42 @@
+{
+	"name": "tuan-vscode",
+	"displayName": "tuan-vscode",
+	"description": "The extension bringing Tuan experience to VSCode.",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.103.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [],
+	"main": "./out/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "tuan-vscode.helloWorld",
+				"title": "Hello World"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "pnpm run compile",
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"pretest": "pnpm run compile && pnpm run lint",
+		"lint": "biome lint",
+		"lint:fix": "biome lint --write",
+		"format": "biome format",
+		"format:fix": "biome format --write",
+		"test": "vscode-test"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.2.4",
+		"@types/mocha": "^10.0.10",
+		"@types/node": "22.x",
+		"@types/vscode": "^1.103.0",
+		"@vscode/test-cli": "^0.0.11",
+		"@vscode/test-electron": "^2.5.2",
+		"typescript": "^5.9.2"
+	}
+}
