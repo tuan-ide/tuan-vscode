@@ -12,12 +12,25 @@
 	"activationEvents": [],
 	"main": "./out/extension.js",
 	"contributes": {
-		"commands": [
-			{
-				"command": "tuan-vscode.helloWorld",
-				"title": "Hello World"
-			}
-		]
+		"viewsContainers": {
+			"panel": [
+				{
+					"id": "tuanGraph",
+					"title": "Tuan Graph",
+					"icon": ""
+				}
+			]
+		},
+		"views": {
+			"tuanGraph": [
+				{
+					"id": "tuan.graph",
+					"name": "Graph",
+					"type": "webview",
+					"icon": ""
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "pnpm run compile",
