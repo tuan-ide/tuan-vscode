@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as vscode from "vscode";
 import * as TuanGraph from '@tuan/core-graph';
+import { AppChannel } from "./App";
 
 export class TuanGraphView implements vscode.WebviewViewProvider {
 	public static readonly viewId = "tuan.graph";
@@ -22,6 +23,21 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 		webviewView.webview.html = await this.getHtmlForWebview(
 			webviewView.webview,
 		);
+
+		const appChannel = new AppChannel(webviewView);
+		appChannel.onMessage(message => this.handleWebviewMessage(message));
+	}
+
+	private handleWebviewMessage(message: AppChannel.Message) {
+		switch (message.type) {
+			case "openFile": {
+				const uri = vscode.Uri.file(message.path);
+				const permanent = vscode.window.activeTextEditor?.document.uri.toString() === uri.toString()
+				vscode.window.showTextDocument(uri, { preview: !permanent });
+				break;
+			}
+			default: message.type satisfies never;
+		}
 	}
 
 	private async getHtmlForWebview(webview: vscode.Webview): Promise<string> {

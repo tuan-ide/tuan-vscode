@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 
 import type { GraphDescription, Node } from "@tuan/core-graph";
+import type { WebviewView } from "vscode";
 
 interface VsCodeApi<T = unknown> {
 	postMessage(message: unknown): void;
@@ -8,9 +9,11 @@ interface VsCodeApi<T = unknown> {
 	getState(): T | undefined;
 }
 
-const vscode: VsCodeApi =
+// @ts-expect-error acquireVsCodeApi is injected by VS Code
+const vscode: VsCodeApi = typeof acquireVsCodeApi !== "undefined"
 	// @ts-expect-error acquireVsCodeApi is injected by VS Code
-	acquireVsCodeApi();
+	? acquireVsCodeApi()
+	: undefined!;
 
 export class App {
 	private canvas: HTMLCanvasElement;
@@ -301,6 +304,30 @@ export class App {
 		this.canvas.addEventListener("mouseleave", () => {
 			isPanning = false;
 		});
+
+		this.canvas.addEventListener("click", (event) => {
+			const rect = this.canvas.getBoundingClientRect();
+			const sx = event.clientX - rect.left;
+			const sy = event.clientY - rect.top;
+
+			const node = this.getClickedNode(sx, sy);
+			if (node) {
+				AppChannel.send({ type: "openFile", path: node.filePath });
+			}
+		});
+	}
+
+	private getClickedNode(sx: number, sy: number): Node | null {
+		const clickRadius = 10;
+		for (const node of this.graph.nodes.values()) {
+			const [nx, ny] = this.normalizePosition(node.position);
+			const dx = sx - nx;
+			const dy = sy - ny;
+			if (dx * dx + dy * dy <= clickRadius * clickRadius) {
+				return node;
+			}
+		}
+		return null;
 	}
 }
 
@@ -327,3 +354,29 @@ namespace App {
 		textColor: string;
 	}
 }
+
+export class AppChannel {
+	private webviewView: WebviewView;
+
+	constructor(webviewView: WebviewView) {
+		this.webviewView = webviewView;
+	}
+
+	static send(message: AppChannel.Message) {
+		vscode.postMessage(message);
+	}
+
+	onMessage(callback: (message: AppChannel.Message) => void) {
+		this.webviewView.webview.onDidReceiveMessage(callback);
+	}
+}
+
+export namespace AppChannel {
+	export type Message = OpenFileMessage;
+
+	export interface OpenFileMessage {
+		type: "openFile";
+		path: string;
+	}
+}
+
