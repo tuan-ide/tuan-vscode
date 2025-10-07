@@ -20,6 +20,7 @@ export class App {
 		edges: Array<{ from: number; to: number }>;
 	};
 	private camera: Camera;
+	private theme: App.Theme;
 
 	private minPosition: [number, number] = [Infinity, Infinity];
 	private maxPosition: [number, number] = [-Infinity, -Infinity];
@@ -32,12 +33,23 @@ export class App {
 
 		this.canvas = this.createCanvas();
 		this.camera = new Camera();
+		this.theme = this.getTheme();
 
 		this.graph = { nodes: new Map(), edges: [] };
 		this.updateGraphData(graphData);
 
 		this.bindEvents();
 		this.drawCanvas();
+	}
+
+	private getTheme(): App.Theme {
+		const style = getComputedStyle(document.body);
+		return {
+			backgroundColor: style.getPropertyValue("--vscode-editor-background") || "#1e1e1e",
+			nodeColor: style.getPropertyValue("--vscode-button-background") || "#0e639c",
+			edgeColor: style.getPropertyValue("--vscode-contrastActiveBorder") || "#888888",
+			textColor: style.getPropertyValue("--vscode-editor-foreground") || "#ffffff",
+		};
 	}
 
 	private updateGraphData(graphData: string) {
@@ -145,10 +157,10 @@ export class App {
 		if (!ctx) return;
 
 		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-		ctx.fillStyle = "blue";
+		ctx.fillStyle = this.theme.backgroundColor;
 		ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-		ctx.strokeStyle = "white";
+		ctx.strokeStyle = this.theme.edgeColor;
 		ctx.lineWidth = 1;
 		ctx.lineCap = "round";
 		for (const edge of this.graph.edges) {
@@ -165,8 +177,8 @@ export class App {
 			ctx.stroke();
 		}
 
-		ctx.fillStyle = "white";
-		ctx.strokeStyle = "black";
+		ctx.fillStyle = this.theme.nodeColor;
+		ctx.strokeStyle = this.theme.textColor;
 		for (const node of this.graph.nodes.values()) {
 			const [x, y] = this.normalizePosition(node.position);
 			ctx.beginPath();
@@ -304,5 +316,14 @@ class Camera {
 	pan(dx: number, dy: number) {
 		this.position[0] += dx;
 		this.position[1] += dy;
+	}
+}
+
+namespace App {
+	export interface Theme {
+		backgroundColor: string;
+		nodeColor: string;
+		edgeColor: string;
+		textColor: string;
 	}
 }
