@@ -43,6 +43,9 @@
 		"format:fix": "biome format --write",
 		"test": "vscode-test"
 	},
+	"dependencies": {
+		"@tuan/core-graph": "file:../tuan-core/napi/tuan-graph"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",
 		"@types/mocha": "^10.0.10",

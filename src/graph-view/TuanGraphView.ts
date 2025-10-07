@@ -1,8 +1,15 @@
 import * as fs from "node:fs";
-import type * as vscode from "vscode";
+import * as vscode from "vscode";
+import * as TuanGraph from '@tuan/core-graph';
 
 export class TuanGraphView implements vscode.WebviewViewProvider {
 	public static readonly viewId = "tuan.graph";
+	private static readonly channel = vscode.window.createOutputChannel("Tuan");
+	private workspacePath: string;
+
+	constructor(workspaceFolder: vscode.WorkspaceFolder) {
+		this.workspacePath = workspaceFolder.uri.fsPath;
+	}
 
 	async resolveWebviewView(
 		webviewView: vscode.WebviewView,
@@ -28,13 +35,16 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 			</head>
 			<body>
 				<div id="app" style="width: 100%; height: 100vh;"></div>
+				<script id="graph-data" type="application/json">
+					${this.getGraph()}
+				</script>
 				<script type="module">
 					globalThis.exports = {};
 					${TuanGraphView.getMainModule()}
 				</script>
 				<script type="module">
 					const { App } = exports;
-					new App(document.getElementById('app'));
+					new App(document.getElementById('app'), document.getElementById('graph-data').textContent);
 				</script>
 			</body>
 			</html>
@@ -44,5 +54,14 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 	private static getMainModule() {
 		const webviewPath = require.resolve("./App");
 		return fs.readFileSync(webviewPath, "utf8");
+	}
+
+	private getGraph() {
+		const graph = TuanGraph.typescript.getGraph(this.workspacePath);
+		graph.positioning();
+
+		TuanGraphView.channel.appendLine(JSON.stringify(graph.describe(), null, 2));
+
+		return JSON.stringify(graph.describe());
 	}
 }
