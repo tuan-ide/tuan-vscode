@@ -25,6 +25,10 @@ export class App {
 	private camera: Camera;
 	private theme: App.Theme;
 
+	private dpr = Math.max(1, window.devicePixelRatio || 1);
+	private viewWidth = 0;
+	private viewHeight = 0;
+
 	private minPosition: [number, number] = [Infinity, Infinity];
 	private maxPosition: [number, number] = [-Infinity, -Infinity];
 
@@ -81,15 +85,15 @@ export class App {
 		const spanX = maxX - minX || 1;
 		const spanY = maxY - minY || 1;
 
-		const nx = ((x - minX) / spanX) * (this.canvas.width - 40) + 20;
-		const ny = ((y - minY) / spanY) * (this.canvas.height - 40) + 20;
+		const nx = ((x - minX) / spanX) * (this.viewWidth - 40) + 20;
+		const ny = ((y - minY) / spanY) * (this.viewHeight - 40) + 20;
 		return [nx, ny];
 	}
 
 	private normalizePosition(position: [number, number]): [number, number] {
 		const [nx, ny] = this.toNormalizedCanvas(position);
-		const centerX = this.canvas.width / 2;
-		const centerY = this.canvas.height / 2;
+		const centerX = this.viewWidth / 2;
+		const centerY = this.viewHeight / 2;
 
 		const dx = nx - centerX;
 		const dy = ny - centerY;
@@ -104,8 +108,8 @@ export class App {
 	}
 
 	private screenToNormalizedCanvas(sx: number, sy: number): [number, number] {
-		const centerX = this.canvas.width / 2;
-		const centerY = this.canvas.height / 2;
+		const centerX = this.viewWidth / 2;
+		const centerY = this.viewHeight / 2;
 
 		const dx = sx - centerX - this.camera.position[0];
 		const dy = sy - centerY - this.camera.position[1];
@@ -121,10 +125,10 @@ export class App {
 		const actualScale = newZoom / oldZoom;
 		if (actualScale === 1) return;
 
-		const centerX = this.canvas.width / 2;
-		const centerY = this.canvas.height / 2;
-
 		const [nx, ny] = this.screenToNormalizedCanvas(sx, sy);
+
+		const centerX = this.viewWidth / 2;
+		const centerY = this.viewHeight / 2;
 
 		const px =
 			sx - centerX - (nx - centerX) * newZoom;
@@ -142,26 +146,44 @@ export class App {
 	private createCanvas(): HTMLCanvasElement {
 		const canvas = document.createElement("canvas");
 		this.sizeCanvas(canvas);
-		window.addEventListener("resize", () => {
+
+		const mq = matchMedia(`(resolution: ${this.dpr}dppx)`);
+		const onResize = () => {
+			const newDpr = Math.max(1, window.devicePixelRatio || 1);
+			if (newDpr !== this.dpr) this.dpr = newDpr;
 			this.sizeCanvas(canvas);
 			this.drawCanvas();
-		});
+		};
+
+		window.addEventListener("resize", onResize);
+		mq.addEventListener?.("change", onResize);
+
 		this.container.appendChild(canvas);
 		return canvas;
 	}
 
 	private sizeCanvas(canvas: HTMLCanvasElement) {
-		canvas.width = this.container.clientWidth;
-		canvas.height = this.container.clientHeight - 3;
+		this.viewWidth = this.container.clientWidth;
+		this.viewHeight = Math.max(1, this.container.clientHeight - 3);
+
+		canvas.width = Math.max(1, Math.floor(this.viewWidth * this.dpr));
+		canvas.height = Math.max(1, Math.floor(this.viewHeight * this.dpr));
+		canvas.style.width = `${this.viewWidth}px`;
+		canvas.style.height = `${this.viewHeight}px`;
+
+		const ctx = canvas.getContext("2d");
+		if (ctx) {
+			ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+		}
 	}
 
 	private drawCanvas() {
 		const ctx = this.canvas.getContext("2d");
 		if (!ctx) return;
 
-		ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		ctx.clearRect(0, 0, this.viewWidth, this.viewHeight);
 		ctx.fillStyle = this.theme.backgroundColor;
-		ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		ctx.fillRect(0, 0, this.viewWidth, this.viewHeight);
 
 		ctx.strokeStyle = this.theme.edgeColor;
 		ctx.lineWidth = 1;
@@ -182,12 +204,14 @@ export class App {
 
 		ctx.fillStyle = this.theme.nodeColor;
 		ctx.strokeStyle = this.theme.textColor;
+		ctx.font = "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
+		ctx.textBaseline = "middle";
 		for (const node of this.graph.nodes.values()) {
 			const [x, y] = this.normalizePosition(node.position);
 			ctx.beginPath();
 			ctx.arc(x, y, 10, 0, 2 * Math.PI);
 			ctx.fill();
-			ctx.strokeText(node.label, x + 12, y + 4);
+			ctx.strokeText(node.label, x + 12, y);
 		}
 	}
 
