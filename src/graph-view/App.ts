@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 
-import type { GraphDescription, Node } from "@tuan/core-graph";
+import type { Cluster, GraphDescription, Node } from "@tuan/core-graph";
 import type { WebviewView } from "vscode";
 
 interface VsCodeApi<T = unknown> {
@@ -22,6 +22,7 @@ export class App {
 		nodes: Map<number, Node>;
 		edges: Array<{ from: number; to: number }>;
 	};
+	private nodeToClusterMap: Map<number, Cluster>;
 	private camera: Camera;
 	private theme: App.Theme;
 
@@ -35,32 +36,38 @@ export class App {
 	private readonly MIN_ZOOM = 0.1;
 	private readonly MAX_ZOOM = 10;
 
-	constructor(container: HTMLElement, graphData: string) {
+	constructor(container: HTMLElement, graphData: string, partialThemeData: string) {
 		this.container = container;
 
 		this.canvas = this.createCanvas();
 		this.camera = new Camera();
-		this.theme = this.getTheme();
+		this.theme = this.getTheme(partialThemeData);
 
 		this.graph = { nodes: new Map(), edges: [] };
+		this.nodeToClusterMap = new Map();
 		this.updateGraphData(graphData);
 
 		this.bindEvents();
 		this.drawCanvas();
 	}
 
-	private getTheme(): App.Theme {
+	private getTheme(partialThemeData: string): App.Theme {
+		const themeData: Partial<App.Theme> = JSON.parse(partialThemeData || "{}");
+
 		const style = getComputedStyle(document.body);
 		return {
 			backgroundColor: style.getPropertyValue("--vscode-editor-background") || "#1e1e1e",
-			nodeColor: style.getPropertyValue("--vscode-button-background") || "#0e639c",
+			nodeColors: [style.getPropertyValue("--vscode-button-background") || "#0e639c"],
 			edgeColor: style.getPropertyValue("--vscode-contrastActiveBorder") || "#888888",
 			textColor: style.getPropertyValue("--vscode-editor-foreground") || "#ffffff",
+			...themeData,
 		};
 	}
 
 	private updateGraphData(graphData: string) {
-		const parsedData: GraphDescription = JSON.parse(graphData);
+		const parsedData: GraphDescription & { clusters: Array<Cluster> } =
+			JSON.parse(graphData);
+
 		this.minPosition = [Infinity, Infinity];
 		this.maxPosition = [-Infinity, -Infinity];
 
@@ -75,6 +82,13 @@ export class App {
 			if (y > this.maxPosition[1]) this.maxPosition[1] = y;
 		}
 		this.graph.edges = parsedData.edges;
+
+		this.nodeToClusterMap.clear();
+		for (const cluster of parsedData.clusters) {
+			for (const memberId of cluster.members) {
+				this.nodeToClusterMap.set(memberId, cluster);
+			}
+		}
 	}
 
 	private toNormalizedCanvas(position: [number, number]): [number, number] {
@@ -202,12 +216,16 @@ export class App {
 			ctx.stroke();
 		}
 
-		ctx.fillStyle = this.theme.nodeColor;
 		ctx.strokeStyle = this.theme.textColor;
 		ctx.font = "12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
 		ctx.textBaseline = "middle";
 		for (const node of this.graph.nodes.values()) {
 			const [x, y] = this.normalizePosition(node.position);
+
+			const cluster = this.nodeToClusterMap.get(node.id);
+			const colorIndex = cluster ? cluster.id % this.theme.nodeColors.length : 0;
+			ctx.fillStyle = this.theme.nodeColors[colorIndex];
+
 			ctx.beginPath();
 			ctx.arc(x, y, 10, 0, 2 * Math.PI);
 			ctx.fill();
@@ -370,10 +388,10 @@ class Camera {
 	}
 }
 
-namespace App {
+export namespace App {
 	export interface Theme {
 		backgroundColor: string;
-		nodeColor: string;
+		nodeColors: string[];
 		edgeColor: string;
 		textColor: string;
 	}
@@ -403,4 +421,3 @@ export namespace AppChannel {
 		path: string;
 	}
 }
-

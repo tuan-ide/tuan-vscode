@@ -1,7 +1,8 @@
 import * as fs from "node:fs";
-import * as vscode from "vscode";
 import * as TuanGraph from '@tuan/core-graph';
-import { AppChannel } from "./App";
+import * as vscode from "vscode";
+import { type App, AppChannel } from "./App";
+import { getCurrentTheme } from "./getCurrentTheme";
 
 export class TuanGraphView implements vscode.WebviewViewProvider {
 	public static readonly viewId = "tuan.graph";
@@ -52,7 +53,10 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 			<body>
 				<div id="app" style="width: 100%; height: 100vh;"></div>
 				<script id="graph-data" type="application/json">
-					${this.getGraph()}
+					${JSON.stringify(this.getGraph())}
+				</script>
+				<script id="theme-data" type="application/json">
+					${JSON.stringify(this.getTheme())}
 				</script>
 				<script type="module">
 					globalThis.exports = {};
@@ -60,7 +64,7 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 				</script>
 				<script type="module">
 					const { App } = exports;
-					new App(document.getElementById('app'), document.getElementById('graph-data').textContent);
+					new App(document.getElementById('app'), document.getElementById('graph-data').textContent, document.getElementById('theme-data').textContent);
 				</script>
 			</body>
 			</html>
@@ -78,6 +82,23 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 
 		TuanGraphView.channel.appendLine(JSON.stringify(graph.describe(), null, 2));
 
-		return JSON.stringify(graph.describe());
+		const clusters = graph.clusterize(100);
+
+		return {
+			...graph.describe(),
+			clusters,
+		};
+	}
+
+	private getTheme(): Partial<App.Theme> {
+		const { tokenColors } = getCurrentTheme();
+
+		const colors = tokenColors
+			.flatMap(tc => [tc.settings.background, tc.settings.foreground])
+			.filter(tc => tc !== undefined);
+
+		return {
+			nodeColors: colors,
+		}
 	}
 }
