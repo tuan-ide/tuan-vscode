@@ -1,5 +1,8 @@
 import * as fs from "node:fs";
+process.env.NAPI_RS_NATIVE_LIBRARY_PATH="/Users/arthur-fontaine/Developer/code/github.com/tuan-ide/tuan-core/napi/tuan-graph/core-graph.darwin-arm64.node"
 import * as TuanGraph from '@tuan/core-graph';
+process.env.NAPI_RS_NATIVE_LIBRARY_PATH="/Users/arthur-fontaine/Developer/code/github.com/tuan-ide/tuan-core/napi/tuan-labeler/core-labeler.darwin-arm64.node"
+import * as TuanLabeler from '@tuan/core-labeler'
 import * as vscode from "vscode";
 import { type App, AppChannel } from "./App";
 import { getCurrentTheme } from "./getCurrentTheme";
@@ -9,8 +12,23 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 	private static readonly channel = vscode.window.createOutputChannel("Tuan");
 	private workspacePath: string;
 
+	private graph: TuanGraph.Graph = undefined!;
+	private clusters: TuanGraph.Cluster[] = undefined!;
+	private labeler: TuanLabeler.ProjectLabeler = undefined!;
+	private clusterLabels: Map<TuanGraph.Cluster['id'], string> = new Map();
+
 	constructor(workspaceFolder: vscode.WorkspaceFolder) {
 		this.workspacePath = workspaceFolder.uri.fsPath;
+
+		this.updateGraph();
+		this.updateLabeler();
+		this.updateLabels();
+
+		TuanGraphView.channel.appendLine(JSON.stringify({
+			graph: this.graph,
+			clusters: this.clusters,
+			labels: Object.fromEntries(this.clusterLabels),
+		}));
 	}
 
 	async resolveWebviewView(
@@ -53,7 +71,7 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 			<body>
 				<div id="app" style="width: 100%; height: 100vh;"></div>
 				<script id="graph-data" type="application/json">
-					${JSON.stringify(this.getGraph())}
+					${JSON.stringify(this.describeGraph())}
 				</script>
 				<script id="theme-data" type="application/json">
 					${JSON.stringify(this.getTheme())}
@@ -76,7 +94,7 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 		return fs.readFileSync(webviewPath, "utf8");
 	}
 
-	private getGraph() {
+	private updateGraph() {
 		const graph = TuanGraph.typescript.getGraph(this.workspacePath);
 		graph.positioning();
 
@@ -84,10 +102,43 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 
 		const clusters = graph.clusterize(100);
 
+		this.graph = graph;
+		this.clusters = clusters;
+	}
+
+	private describeGraph() {
 		return {
-			...graph.describe(),
-			clusters,
+			...this.graph.describe(),
+			clusters: this.clusters,
 		};
+	}
+
+	private updateLabeler() {
+		this.labeler = new TuanLabeler.ProjectLabeler(
+			this.workspacePath,
+			this.graph.nodes.map(node => node.filePath)
+		);
+	}
+
+	private updateLabels() {
+		const nodeIdToPathMap = new Map<number, string>();
+		for (const node of this.graph.nodes) {
+			nodeIdToPathMap.set(node.id, node.filePath);
+		}
+
+		for (const cluster of this.clusters) {
+			const clusterFilePaths = cluster.members
+				.map(member => nodeIdToPathMap.get(member))
+				.filter(path => path !== undefined);
+
+			const labels = this.labeler.labelFiles(clusterFilePaths);
+			const sortedLabels = Object.entries(labels)
+				.sort(([, scoreA], [, scoreB]) => scoreB - scoreA);
+			TuanGraphView.channel.appendLine(`Cluster ${cluster.id}, files: ${JSON.stringify(clusterFilePaths)}, labels: ${JSON.stringify(sortedLabels)}`);
+			const label = sortedLabels[0][0];
+
+			this.clusterLabels.set(cluster.id, label)
+		}
 	}
 
 	private getTheme(): Partial<App.Theme> {

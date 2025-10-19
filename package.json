@@ -44,7 +44,8 @@
 		"test": "vscode-test"
 	},
 	"dependencies": {
-		"@tuan/core-graph": "file:../tuan-core/napi/tuan-graph"
+		"@tuan/core-graph": "file:../tuan-core/napi/tuan-graph",
+		"@tuan/core-labeler": "file:../tuan-core/napi/tuan-labeler"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",

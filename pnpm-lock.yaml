@@ -11,6 +11,9 @@ importers:
       '@tuan/core-graph':
         specifier: file:../tuan-core/napi/tuan-graph
         version: file:../tuan-core/napi/tuan-graph
+      '@tuan/core-labeler':
+        specifier: file:../tuan-core/napi/tuan-labeler
+        version: file:../tuan-core/napi/tuan-labeler
     devDependencies:
       '@biomejs/biome':
         specifier: 2.2.4
@@ -116,6 +119,10 @@ packages:
 
   '@tuan/core-graph@file:../tuan-core/napi/tuan-graph':
     resolution: {directory: ../tuan-core/napi/tuan-graph, type: directory}
+    engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
+
+  '@tuan/core-labeler@file:../tuan-core/napi/tuan-labeler':
+    resolution: {directory: ../tuan-core/napi/tuan-labeler, type: directory}
     engines: {node: '>= 12.22.0 < 13 || >= 14.17.0 < 15 || >= 15.12.0 < 16 || >= 16.0.0'}
 
   '@types/istanbul-lib-coverage@2.0.6':
@@ -751,6 +758,8 @@ snapshots:
     optional: true
 
   '@tuan/core-graph@file:../tuan-core/napi/tuan-graph': {}
+
+  '@tuan/core-labeler@file:../tuan-core/napi/tuan-labeler': {}
 
   '@types/istanbul-lib-coverage@2.0.6': {}
 
