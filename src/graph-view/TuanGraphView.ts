@@ -110,6 +110,7 @@ export class TuanGraphView implements vscode.WebviewViewProvider {
 		return {
 			...this.graph.describe(),
 			clusters: this.clusters,
+			clusterLabels: Object.fromEntries(this.clusterLabels),
 		};
 	}
 

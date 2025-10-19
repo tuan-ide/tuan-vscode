@@ -23,6 +23,8 @@ export class App {
 		edges: Array<{ from: number; to: number }>;
 	};
 	private nodeToClusterMap: Map<number, Cluster>;
+	private clusterLabels: Map<Cluster['id'], string>;
+	private clusterCenters: Map<Cluster['id'], [number, number]>;
 	private camera: Camera;
 	private theme: App.Theme;
 
@@ -45,6 +47,8 @@ export class App {
 
 		this.graph = { nodes: new Map(), edges: [] };
 		this.nodeToClusterMap = new Map();
+		this.clusterLabels = new Map();
+		this.clusterCenters = new Map();
 		this.updateGraphData(graphData);
 
 		this.bindEvents();
@@ -65,8 +69,13 @@ export class App {
 	}
 
 	private updateGraphData(graphData: string) {
-		const parsedData: GraphDescription & { clusters: Array<Cluster> } =
-			JSON.parse(graphData);
+		const parsedData: (
+			& GraphDescription
+			& {
+				clusters: Array<Cluster>,
+				clusterLabels: Record<Cluster['id'], string>,
+			}
+		) = JSON.parse(graphData);
 
 		this.minPosition = [Infinity, Infinity];
 		this.maxPosition = [-Infinity, -Infinity];
@@ -87,6 +96,27 @@ export class App {
 		for (const cluster of parsedData.clusters) {
 			for (const memberId of cluster.members) {
 				this.nodeToClusterMap.set(memberId, cluster);
+			}
+		}
+
+		this.clusterLabels = new Map(Object.entries(parsedData.clusterLabels).map(
+			([id, label]) => [Number(id), label]
+		));
+
+		this.clusterCenters = new Map();
+		for (const cluster of parsedData.clusters) {
+			let sumX = 0;
+			let sumY = 0;
+			for (const memberId of cluster.members) {
+				const node = this.graph.nodes.get(memberId);
+				if (node) {
+					sumX += node.position[0];
+					sumY += node.position[1];
+				}
+			}
+			const count = cluster.members.length;
+			if (count > 0) {
+				this.clusterCenters.set(cluster.id, [sumX / count, sumY / count]);
 			}
 		}
 	}
@@ -229,7 +259,18 @@ export class App {
 			ctx.beginPath();
 			ctx.arc(x, y, 10, 0, 2 * Math.PI);
 			ctx.fill();
-			ctx.strokeText(node.label, x + 12, y);
+
+			ctx.fillStyle = this.theme.textColor;
+			if (this.camera.zoom < 2) {
+				const clusterCenter = cluster ? this.clusterCenters.get(cluster.id) : null;
+				const label = cluster ? this.clusterLabels.get(cluster.id) : null;
+				if (clusterCenter && label) {
+					const [centerX, centerY] = this.normalizePosition(clusterCenter);
+					ctx.strokeText(label, centerX, centerY);
+				}
+			} else {
+				ctx.strokeText(node.label, x + 12, y);
+			}
 		}
 	}
 
