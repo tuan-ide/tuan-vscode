@@ -266,7 +266,49 @@ export class App {
 				const label = cluster ? this.clusterLabels.get(cluster.id) : null;
 				if (clusterCenter && label) {
 					const [centerX, centerY] = this.normalizePosition(clusterCenter);
-					ctx.strokeText(label, centerX, centerY);
+					const padding = 4;
+					const textWidth = ctx.measureText(label).width;
+					const rectWidth = textWidth + padding * 2;
+					const rectHeight = 20;
+
+					const bgColor = this.theme.nodeColors[colorIndex];
+					const sceneBgColor = this.theme.backgroundColor;
+					const mixColors = (color1: string, color2: string, weight: number) => {
+						const hexToRgb = (hex: string) => {
+							const bigint = parseInt(hex.slice(1), 16);
+							return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+						};
+						const rgbToHex = (r: number, g: number, b: number) =>
+							`#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+
+						const rgb1 = hexToRgb(color1);
+						const rgb2 = hexToRgb(color2);
+						const mixedRgb = rgb1.map((c, i) => Math.round(c * weight + rgb2[i] * (1 - weight)));
+						return rgbToHex(mixedRgb[0], mixedRgb[1], mixedRgb[2]);
+					};
+					const mixedBgColor = mixColors(bgColor, sceneBgColor, 0.8);
+
+					const getContrastColor = (bgColor: string) => {
+						const hexToRgb = (hex: string) => {
+							const bigint = parseInt(hex.slice(1), 16);
+							return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+						};
+						const [r, g, b] = hexToRgb(bgColor);
+						const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+						return luminance > 0.5 ? "#000000" : "#FFFFFF";
+					};
+					const textColor = getContrastColor(mixedBgColor);
+
+					ctx.fillStyle = mixedBgColor;
+					ctx.strokeStyle = bgColor;
+
+					ctx.beginPath();
+					ctx.roundRect(centerX - rectWidth / 2, centerY - rectHeight / 2, rectWidth, rectHeight, 5);
+					ctx.fill();
+					ctx.stroke();
+
+					ctx.fillStyle = textColor;
+					ctx.fillText(label, centerX - textWidth / 2, centerY);
 				}
 			} else {
 				ctx.strokeText(node.label, x + 12, y);
