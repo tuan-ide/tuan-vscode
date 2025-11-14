@@ -261,6 +261,15 @@ export class App {
 			ctx.fill();
 
 			ctx.fillStyle = this.theme.textColor;
+		}
+
+		for (const node of this.graph.nodes.values()) {
+			const [x, y] = this.normalizePosition(node.position);
+
+			const cluster = this.nodeToClusterMap.get(node.id);
+			const colorIndex = cluster ? cluster.id % this.theme.nodeColors.length : 0;
+			ctx.fillStyle = this.theme.nodeColors[colorIndex];
+
 			if (this.camera.zoom < 2) {
 				const clusterCenter = cluster ? this.clusterCenters.get(cluster.id) : null;
 				const label = cluster ? this.clusterLabels.get(cluster.id) : null;
