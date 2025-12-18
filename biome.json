@@ -7,7 +7,14 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"includes": ["**", "!out", "!node_modules", "!.vscode-test", "!.git"]
+		"includes": [
+			"**",
+			"!out",
+			"!node_modules",
+			"!.vscode-test",
+			"!.git",
+			"!dist"
+		]
 	},
 	"formatter": {
 		"enabled": true,

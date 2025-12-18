@@ -6,6 +6,10 @@ src/**
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/eslint.config.mjs
+rspack.config.js
+biome.json
 **/*.map
+out/**
+node_modules/**
 **/*.ts
 **/.vscode-test.*
