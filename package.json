@@ -2,6 +2,9 @@
 	"name": "tuan-vscode",
 	"displayName": "tuan-vscode",
 	"description": "The extension bringing Tuan experience to VSCode.",
+	"repository": {
+		"url": "git@github.com:tuan-ide/tuan-vscode.git"
+	},
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.103.0"
@@ -10,7 +13,7 @@
 		"Other"
 	],
 	"activationEvents": [],
-	"main": "./out/extension.js",
+	"main": "./dist/extension.js",
 	"contributes": {
 		"viewsContainers": {
 			"panel": [
@@ -33,15 +36,18 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "pnpm run compile",
+		"vscode:prepublish": "pnpm run build",
+		"build": "rspack build",
 		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"pretest": "pnpm run compile && pnpm run lint",
+		"watch": "rspack build --watch",
+		"pretest": "pnpm run build && pnpm run compile && pnpm run lint",
 		"lint": "biome lint",
 		"lint:fix": "biome lint --write",
 		"format": "biome format",
 		"format:fix": "biome format --write",
-		"test": "vscode-test"
+		"test": "vscode-test",
+		"copy-libs": "rm -rf lib && mkdir -p lib/@tuan && cp -L -r ../tuan-core/napi/tuan-graph lib/@tuan/core-graph && cp -L -r ../tuan-core/napi/tuan-labeler lib/@tuan/core-labeler",
+		"package": "pnpm run copy-libs && vsce package --no-dependencies"
 	},
 	"dependencies": {
 		"@tuan/core-graph": "file:../tuan-core/napi/tuan-graph",
@@ -49,11 +55,15 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.2.4",
+		"@rspack/cli": "^1.6.8",
+		"@rspack/core": "^1.6.8",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "22.x",
 		"@types/vscode": "^1.103.0",
 		"@vscode/test-cli": "^0.0.11",
 		"@vscode/test-electron": "^2.5.2",
+		"@vscode/vsce": "^3.7.1",
+		"node-loader": "^2.1.0",
 		"typescript": "^5.9.2"
 	}
 }
